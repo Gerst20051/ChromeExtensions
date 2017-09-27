@@ -1,50 +1,46 @@
 
-$(function () {
-  $('#search').change(function () {
+$(() => {
+  $('#search').change(() => {
     $('#bookmarks').empty();
     dumpBookmarks($('#search').val());
   });
 });
 
 function dumpBookmarks(query) {
-  var bookmarkTreeNodes = chrome.bookmarks.getTree(
-    function (bookmarkTreeNodes) {
-      $('#bookmarks').append(dumpTreeNodes(bookmarkTreeNodes, query));
-    }
-  );
+  const bookmarkTreeNodes = chrome.bookmarks.getTree(bookmarkTreeNodes => {
+    $('#bookmarks').append(dumpTreeNodes(bookmarkTreeNodes, query));
+  });
 }
 
 function dumpTreeNodes(bookmarkNodes, query) {
-  var list = $('<ul>');
-  var i;
+  const list = $('<ul>');
+  let i;
   for (i = 0; i < bookmarkNodes.length; i++) {
     list.append(dumpNode(bookmarkNodes[i], query));
   }
   return list;
 }
 
-function dumpNode(bookmarkNode, query) {
-  if (bookmarkNode.title) {
-    if (query && !bookmarkNode.children) {
-      if (String(bookmarkNode.title).indexOf(query) == -1) {
+function dumpNode({ title, children, url, id }, query) {
+  if (title) {
+    if (query && !children) {
+      if (!String(title).includes(query)) {
         return $('<span></span>');
       }
     }
-    var anchor = $('<a>');
-    anchor.attr('href', bookmarkNode.url);
-    anchor.text(bookmarkNode.title);
-    anchor.click(function () {
-      chrome.tabs.create({
-        url: bookmarkNode.url
-      });
+    const anchor = $('<a>');
+    anchor.attr('href', url);
+    anchor.text(title);
+    anchor.click(() => {
+      chrome.tabs.create({ url: url });
     });
     var span = $('<span>');
-    var options = bookmarkNode.children ? $('<span>[<a href="#" id="addlink">Add</a>]</span>') : $('<span>[<a id="editlink" href="#">Edit</a> <a id="deletelink" href="#">Delete</a>]</span>');
-    var edit = bookmarkNode.children ? $('<table><tr><td>Name</td><td><input id="title"></td></tr><tr><td>URL</td><td><input id="url"></td></tr></table>') : $('<input>');
+    const options = children ? $('<span>[<a href="#" id="addlink">Add</a>]</span>') : $('<span>[<a id="editlink" href="#">Edit</a> <a id="deletelink" href="#">Delete</a>]</span>');
+    const edit = children ? $('<table><tr><td>Name</td><td><input id="title"></td></tr><tr><td>URL</td><td><input id="url"></td></tr></table>') : $('<input>');
 
     function onSpanHover() {
       span.append(options);
-      $('#deletelink').click(function () {
+      $('#deletelink').click(() => {
         $('#deletedialog').empty().dialog({
           autoOpen: false,
           title: 'Confirm Deletion',
@@ -57,17 +53,17 @@ function dumpNode(bookmarkNode, query) {
           },
           buttons: {
             'Yes, Delete It!': function () {
-              chrome.bookmarks.remove(String(bookmarkNode.id));
+              chrome.bookmarks.remove(String(id));
               span.parent().remove();
               $(this).dialog('destroy');
             },
-            Cancel: function () {
+            Cancel() {
               $(this).dialog('destroy');
             }
           }
         }).dialog('open');
       });
-      $('#addlink').click(function () {
+      $('#addlink').click(() => {
         $('#adddialog').empty().append(edit).dialog({
           autoOpen: false,
           closeOnEscape: true,
@@ -76,7 +72,7 @@ function dumpNode(bookmarkNode, query) {
           buttons: {
             'Add': function () {
               chrome.bookmarks.create({
-                parentId: bookmarkNode.id,
+                parentId: id,
                 title: $('#title').val(),
                 url: $('#url').val()
               });
@@ -90,7 +86,7 @@ function dumpNode(bookmarkNode, query) {
           }
         }).dialog('open');
       });
-      $('#editlink').click(function () {
+      $('#editlink').click(() => {
         edit.val(anchor.text());
         $('#editdialog').empty().append(edit).dialog({
           autoOpen: false,
@@ -100,7 +96,7 @@ function dumpNode(bookmarkNode, query) {
           show: 'slide',
           buttons: {
             'Save': function () {
-              chrome.bookmarks.update(String(bookmarkNode.id), {
+              chrome.bookmarks.update(String(id), {
                 title: edit.val()
               });
               anchor.text(edit.val());
@@ -122,13 +118,13 @@ function dumpNode(bookmarkNode, query) {
 
     span.hover(onSpanHover, onSpanUnHover).append(anchor);
   }
-  var li = $(bookmarkNode.title ? '<li>' : '<div>').append(span);
-  if (bookmarkNode.children && bookmarkNode.children.length > 0) {
-    li.append(dumpTreeNodes(bookmarkNode.children, query));
+  const li = $(title ? '<li>' : '<div>').append(span);
+  if (children && children.length > 0) {
+    li.append(dumpTreeNodes(children, query));
   }
   return li;
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', () => {
   dumpBookmarks();
 });
